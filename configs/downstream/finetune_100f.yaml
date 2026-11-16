@@ -1,0 +1,344 @@
+# Downstream configuration for full fine-tuning (100F); frozen-head runs reuse it (see bpjepa.downstream.frozen.config_for_cache).
+# Data paths are bound on the command line. test is null: the paper reports validation only.
+# model.NMS_args.window = 10 means 10 steps on the 0.5-s grid (model.eval_step_timestamp): a value survives only if no score
+# within 5 steps (+-2.5 s) on either side exceeds it. It is NOT a 10-second window.
+callbacks:
+  learning_rate_monitor:
+    _target_: eztorch.callbacks.LearningRateMonitor
+    log_momentum: false
+    logging_interval: null
+  model_checkpoint:
+    _target_: eztorch.callbacks.ModelCheckpoint
+    dirpath: checkpoints
+    every_n_epochs: 10
+    filename: best-{epoch}
+    mode: max
+    monitor: tight_Average_mAP/mAP
+    save_last: true
+    save_top_k: 1
+  progress_bar:
+    _target_: eztorch.callbacks.TQDMProgressBar
+    process_position: 0
+    refresh_rate: 50
+  epoch_checkpoint:
+    _target_: bpjepa.downstream.callbacks.EpochCheckpoint
+    dirpath: checkpoints
+    every_n_epochs: 5
+    save_last: true
+    validation_every_n_epochs: 10
+datamodule:
+  _recursive_: false
+  _target_: eztorch.datamodules.SoccerNetDataModule
+  datadir: ''
+  decoder: frame
+  decoder_args:
+    fps: 2
+    mask_ratio: 0.0
+    mask_tube: 2
+    num_decode: 1
+    num_threads_decode: 4
+    num_threads_io: 4
+    time_difference_prob: 0.0
+    transform: null
+  test: null
+  train:
+    clip_sampler:
+      _target_: eztorch.datasets.clip_samplers.soccernet.UniformWindowWithoutOverlapSoccerNetClipSampler
+      prevent_resample_edges: true
+      sample_edges: true
+      shuffle: true
+      window_duration: 32.0
+      windows_per_video: 100
+    dataset:
+      datadir: null
+      feature_args: null
+      label_args:
+        cache_dir: null
+        radius_label: 0.5
+      task: action
+      video_path_prefix: null
+    decoder_args:
+      fps: 2
+      mask_ratio: 0.0
+      mask_tube: 2
+      num_decode: 1
+      num_threads_decode: 4
+      num_threads_io: 4
+      time_difference_prob: 0.0
+      transform: null
+    global_batch_size: 32
+    loader:
+      drop_last: true
+      num_workers: 8
+      pin_memory: true
+      shuffle: false
+    transform: null
+  val:
+    clip_sampler:
+      _target_: eztorch.datasets.clip_samplers.soccernet.SlidingWindowSoccerNetClipSampler
+      overlap_window: 16
+      shuffle: true
+      window_duration: 32.0
+    dataset:
+      datadir: null
+      feature_args: null
+      label_args:
+        cache_dir: null
+        radius_label: 0.5
+      task: action
+      video_path_prefix: null
+    decoder_args:
+      fps: 2
+      mask_ratio: 0.0
+      mask_tube: 2
+      num_decode: 1
+      num_threads_decode: 4
+      num_threads_io: 4
+      time_difference_prob: 0.0
+      transform: null
+    global_batch_size: 16
+    loader:
+      drop_last: false
+      num_workers: 8
+      pin_memory: true
+      shuffle: false
+    transform: null
+  video_path_prefix: ''
+model:
+  NMS_args:
+    min_weight: 0.0
+    nms_type: hard
+    threshold: 0.001
+    window: 10
+  _recursive_: false
+  _target_: bpjepa.downstream.initialization.SpatialInitSpottingModel
+  eval_step_timestamp: 0.5
+  evaluation_args:
+    SoccerNet_path: null
+    metric: tight
+    split: valid
+    version: 2
+  freeze_trunk: false
+  head_class:
+    _target_: eztorch.models.heads.LinearHead
+    bias: true
+    dropout: 0.0
+    dropout_inplace: true
+    input_dim: 192
+    norm_layer: null
+    output_dim: 17
+  loss_fn_args:
+    alpha: -1
+    class_loss_type: bce
+    class_weights:
+      type: null
+    gamma: 2.0
+  optimizer:
+    _recursive_: false
+    _target_: eztorch.optimizers.optimizer_factory
+    batch_size: 32
+    exclude_wd_bias: true
+    exclude_wd_norm: true
+    initial_lr: 0.0005
+    keys_without_decay:
+    - pos_embed
+    - spatial_cls_token
+    - temporal_cls_token
+    - time_embed
+    - temporal_mask_token
+    layer_decay_lr: null
+    name: adamw
+    params:
+      amsgrad: false
+      betas:
+      - 0.9
+      - 0.999
+      eps: 1.0e-08
+      weight_decay: 0.05
+    scaler: linear
+    scheduler:
+      _recursive_: false
+      _target_: eztorch.schedulers.scheduler_factory
+      interval: step
+      name: linear_warmup_cosine_annealing_lr
+      params:
+        eta_min: 5.0e-06
+        max_epochs: 100
+        warmup_epochs: 0
+        warmup_start_lr: 0.0
+  prediction_args:
+    merge_predictions_type: max
+    remove_inference_prediction_seconds: 6
+  pretrained_path: null
+  pretrained_trunk_path: null
+  save_test_preds_path: test_preds/
+  save_val_preds_path: val_preds/
+  test_transform:
+    _args_:
+    - _target_: eztorch.transforms.video.soccernet.BatchReduceTimestamps
+    - _target_: eztorch.transforms.ApplyTransformInputKey
+      transform:
+        _args_:
+        - _target_: torchaug.batch_transforms.BatchVideoWrapper
+          inplace: true
+          same_on_frames: true
+          transforms:
+          - _target_: torchaug.batch_transforms.BatchVideoResize
+            antialias: true
+            size:
+            - 224
+            - 224
+            video_format: TCHW
+          - _target_: eztorch.transforms.Div255Input
+            inplace: true
+          - _target_: torchaug.transforms.Normalize
+            inplace: true
+            mean:
+            - 0.45
+            - 0.45
+            - 0.45
+            std:
+            - 0.225
+            - 0.225
+            - 0.225
+          video_format: CTHW
+        _target_: torch.nn.Sequential
+    _recursive_: true
+    _target_: torch.nn.Sequential
+  train_transform:
+    _args_:
+    - _recursive_: true
+      _target_: eztorch.transforms.ApplyTransformInputKey
+      transform:
+        _args_:
+        - _target_: torchaug.batch_transforms.BatchVideoWrapper
+          inplace: true
+          same_on_frames: true
+          transforms:
+          - _target_: torchaug.batch_transforms.BatchVideoResize
+            antialias: true
+            size:
+            - 224
+            - 224
+            video_format: TCHW
+          - _target_: eztorch.transforms.Div255Input
+            inplace: true
+          - _target_: torchaug.batch_transforms.BatchRandomColorJitter
+            brightness: 0.4
+            contrast: 0.4
+            hue: 0.0
+            inplace: true
+            p: 0.8
+            saturation: 0.4
+          - _target_: torchaug.batch_transforms.BatchRandomGaussianBlur
+            inplace: true
+            kernel_size: 23
+            p: 0.5
+            sigma:
+            - 0.1
+            - 2.0
+          - _target_: torchaug.batch_transforms.BatchRandomHorizontalFlip
+            inplace: true
+            p: 0.5
+          - _target_: torchaug.transforms.Normalize
+            inplace: true
+            mean:
+            - 0.45
+            - 0.45
+            - 0.45
+            std:
+            - 0.225
+            - 0.225
+            - 0.225
+          video_format: CTHW
+        _target_: torch.nn.Sequential
+    - _target_: eztorch.transforms.video.soccernet.BatchReduceTimestamps
+    - _target_: eztorch.transforms.video.spot.SpottingMixup
+      alpha: 0.1
+    _recursive_: true
+    _target_: torch.nn.Sequential
+  trunk:
+    _recursive_: false
+    _target_: eztorch.models.trunks.create_vitransformer_token_handler_model
+    average_tokens: false
+    detach_temporal: false
+    flatten_tokens: false
+    return_cls_and_other_tokens: false
+    return_cls_token: false
+    separate_spatial_temporal: false
+    transformer:
+      _target_: eztorch.models.trunks.create_vivit_tiny
+      attention_dropout_rate: 0.0
+      conv_type: Conv3d
+      copy_strategy: spatial_only
+      dropout_p: 0.1
+      dropout_rate: 0.0
+      extend_strategy: temporal_avg
+      freeze_spatial: false
+      img_size: 224
+      in_chans: 3
+      num_frames: 64
+      patch_size: 16
+      pretrain_pth: null
+      spatial_class_token: true
+      temporal_class_token: false
+      temporal_depth: 4
+      temporal_mask_ratio: 0.0
+      temporal_mask_token: false
+      temporal_mask_tube: 2
+      temporal_num_heads: 3
+      time_dropout_rate: 0.0
+      tube_size: 2
+      use_learnable_pos_emb: true
+      use_learnable_time_emb: true
+      weights_from: spatial
+  val_transform:
+    _args_:
+    - _target_: eztorch.transforms.video.soccernet.BatchReduceTimestamps
+    - _target_: eztorch.transforms.ApplyTransformInputKey
+      transform:
+        _args_:
+        - _target_: torchaug.batch_transforms.BatchVideoWrapper
+          inplace: true
+          same_on_frames: true
+          transforms:
+          - _target_: torchaug.batch_transforms.BatchVideoResize
+            antialias: true
+            size:
+            - 224
+            - 224
+            video_format: TCHW
+          - _target_: eztorch.transforms.Div255Input
+            inplace: true
+          - _target_: torchaug.transforms.Normalize
+            inplace: true
+            mean:
+            - 0.45
+            - 0.45
+            - 0.45
+            std:
+            - 0.225
+            - 0.225
+            - 0.225
+          video_format: CTHW
+        _target_: torch.nn.Sequential
+    _recursive_: true
+    _target_: torch.nn.Sequential
+seed:
+  _target_: lightning.fabric.utilities.seed.seed_everything
+  seed: 42
+  workers: true
+trainer:
+  _target_: lightning.pytorch.trainer.Trainer
+  accelerator: gpu
+  benchmark: true
+  check_val_every_n_epoch: 10
+  devices: 2
+  max_epochs: 100
+  num_nodes: 1
+  precision: 16
+  strategy:
+    _target_: lightning.pytorch.strategies.DDPStrategy
+    find_unused_parameters: false
+    static_graph: false
+  sync_batchnorm: false

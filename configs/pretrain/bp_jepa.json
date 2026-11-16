@@ -1,0 +1,103 @@
+{
+  "architecture": {
+    "depth": 12,
+    "drop_path_rate": 0.1,
+    "embed_dim": 192,
+    "mlp_ratio": 4,
+    "num_heads": 3,
+    "patch_size": 16,
+    "tube_size": 2
+  },
+  "augmentation": {
+    "policy": "phase1_resize_imagenet_normalize_no_random_augmentation",
+    "randomness": "none"
+  },
+  "checkpoint_max_hours": 6,
+  "clip_frames": 128,
+  "condition": "compact_temporal_multimask_v1",
+  "data_loader_workers": 8,
+  "effective_global_batch": 32,
+  "ema_end": 0.9999,
+  "ema_start": 0.996,
+  "epochs": 100,
+  "gradient_accumulation_steps": 1,
+  "gradient_clip_norm": 10.0,
+  "image_size": 224,
+  "learning_rate": 0.0001,
+  "mask": {
+    "large": {
+      "aspect_ratio": [
+        0.75,
+        1.5
+      ],
+      "num_blocks": 2,
+      "spatial_scale": 0.7,
+      "temporal_scale": 1.0
+    },
+    "small": {
+      "aspect_ratio": [
+        0.75,
+        1.5
+      ],
+      "num_blocks": 8,
+      "spatial_scale": 0.15,
+      "temporal_scale": 1.0
+    }
+  },
+  "micro_batch_per_gpu": 16,
+  "objectives": {
+    "boundary": {
+      "aux_head_seed": 1,
+      "kind": "EB",
+      "lambda_b": 1.6,
+      "min_per_side": 1,
+      "proj_dim": 32
+    },
+    "head_seed": 0,
+    "kernel": {
+      "alpha": {
+        "large": 0.0,
+        "small": 1.0
+      },
+      "eta_q": 0,
+      "offsets": [
+        -4,
+        -2,
+        -1,
+        1,
+        2,
+        4
+      ],
+      "reduction": "per_sample_group_v1",
+      "tau": 0.1,
+      "v_min": 16
+    },
+    "lambda_tc": 0.0,
+    "stream_log_updates": 200,
+    "telemetry_interval_updates": 819,
+    "warmup_updates": 8190
+  },
+  "optimizer": {
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "eps": 1e-08,
+    "name": "adamw"
+  },
+  "precision": "bf16",
+  "predictor": {
+    "depth": 2,
+    "mlp_ratio": 2,
+    "num_heads": 3,
+    "width": 96
+  },
+  "pretraining_seed": 0,
+  "purpose": "BP-JEPA (historical name E-B0)",
+  "run_id": "bp_jepa",
+  "scheduler": {
+    "name": "constant"
+  },
+  "weight_decay": 0.05,
+  "world_size": 2
+}

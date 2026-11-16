@@ -1,0 +1,20 @@
+# The repository URL, DOI and proceedings metadata are added once they exist.
+cff-version: 1.2.0
+message: "If you use this code, please cite the paper."
+title: "Teaching V-JEPA When Events Happen: Label-Free Boundary Prediction for Action Spotting"
+type: software
+license: MIT
+authors:
+  - family-names: "Chang"
+    given-names: "Alan Shu-Luen"
+    affiliation: "National Taiwan University"
+preferred-citation:
+  type: conference-paper
+  title: "Teaching V-JEPA When Events Happen: Label-Free Boundary Prediction for Action Spotting"
+  authors:
+    - family-names: "Chang"
+      given-names: "Alan Shu-Luen"
+      affiliation: "National Taiwan University"
+  conference:
+    name: "Latent Visual Reasoning: Perception, Imagination, and Multimodal Thought (LVR), workshop at WACV 2027"
+  year: 2027

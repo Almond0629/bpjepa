@@ -1,0 +1,21 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.validation/
+.pytest_cache/
+# run outputs and large artifacts never belong in this repository
+runs/
+data/
+*.ckpt
+*.pt
+*.pth
+lightning_logs/
+outputs/
+out/
+.venv/
+.DS_Store
+tests/
+docs/VALIDATION_REPORT.md
+docs/CLEANUP_REPORT.md

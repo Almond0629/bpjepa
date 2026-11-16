@@ -1,0 +1,63 @@
+{
+  "reference_support": {
+    "min_tokens": 100000,
+    "min_matches": 20,
+    "max_match_token_share": 0.25
+  },
+  "fallback": [
+    [
+      "alignment",
+      "motion",
+      "overlap"
+    ],
+    [
+      "alignment",
+      "overlap"
+    ],
+    [],
+    null
+  ],
+  "state": {
+    "alignment": [
+      "ECC",
+      "PHASE"
+    ],
+    "motion": [
+      "[0,0.005)",
+      "[0.005,0.02)",
+      "[0.02,infinity)",
+      "UNAVAILABLE"
+    ],
+    "overlap": [
+      "[0,0.50)",
+      "[0.50,0.75)",
+      "[0.75,0.90)",
+      "[0.90,1.00]"
+    ],
+    "granularity": "one_state_per_transition",
+    "cut_replay": "excluded_constant_on_VALID_domain"
+  },
+  "tail_score": {
+    "p": "(1+count(reference>=value))/(n+1)",
+    "score": "max(0,1-p/eta_C)",
+    "ties": "greater_or_equal"
+  },
+  "folds": {
+    "seed": 20260926,
+    "hash_input": [
+      "seed",
+      "calib_fold",
+      "match_id"
+    ],
+    "digest": "transition_metadata.canonical_digest",
+    "order": "ascending_digest_then_ID",
+    "assignment": "zero_based_rank_modulo_2",
+    "matches_per_fold": 50,
+    "token_support_each_training_and_heldout_pool": {
+      "min_tokens": 100000,
+      "min_matches": 10,
+      "max_match_token_share": 0.25
+    },
+    "fit": "training_fold_only_references_and_fallbacks"
+  }
+}

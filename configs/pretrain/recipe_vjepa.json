@@ -1,0 +1,109 @@
+{
+  "architecture": {
+    "depth": 12,
+    "drop_path_rate": 0.0,
+    "embed_dim": 192,
+    "mlp_ratio": 4,
+    "num_heads": 3,
+    "patch_size": 16,
+    "tube_size": 2
+  },
+  "augmentation": {
+    "aspect_ratio": [
+      0.75,
+      1.35
+    ],
+    "auto_augment": false,
+    "color_jitter": false,
+    "gaussian_blur": false,
+    "horizontal_flip": true,
+    "horizontal_flip_probability": 0.5,
+    "interpolation": "PIL_bilinear",
+    "motion_shift": false,
+    "normalization": "imagenet",
+    "policy": "vjepa_style_crop_flip_v1",
+    "random_erasing": false,
+    "randomness": "local_rng_by_pretraining_seed_epoch_sample_id",
+    "scale": [
+      0.3,
+      1.0
+    ],
+    "shared_across_frames_and_jepa_branches": true
+  },
+  "checkpoint_max_hours": 6,
+  "clip_frames": 128,
+  "condition": "compact_temporal_multimask_v1",
+  "data_loader_workers": 8,
+  "effective_global_batch": 32,
+  "ema_end": 1.0,
+  "ema_schedule": {
+    "horizon_updates": 102375,
+    "indexing": "zero_based_optimizer_update",
+    "name": "linear"
+  },
+  "ema_start": 0.998,
+  "epochs": 100,
+  "gradient_accumulation_steps": 1,
+  "gradient_clip_norm": 10.0,
+  "image_size": 224,
+  "learning_rate": 0.0001,
+  "mask": {
+    "large": {
+      "aspect_ratio": [
+        0.75,
+        1.5
+      ],
+      "num_blocks": 2,
+      "spatial_scale": 0.7,
+      "temporal_scale": 1.0
+    },
+    "small": {
+      "aspect_ratio": [
+        0.75,
+        1.5
+      ],
+      "num_blocks": 8,
+      "spatial_scale": 0.15,
+      "temporal_scale": 1.0
+    }
+  },
+  "micro_batch_per_gpu": 16,
+  "objectives": null,
+  "optimizer": {
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "eps": 1e-08,
+    "name": "adamw"
+  },
+  "precision": "bf16",
+  "predictor": {
+    "depth": 2,
+    "mlp_ratio": 2,
+    "num_heads": 3,
+    "width": 96
+  },
+  "pretraining_seed": 0,
+  "purpose": "Recipe closer to V-JEPA (5090 stack row of Tab. 1)",
+  "recipe": "vjepa",
+  "run_id": "recipe_vjepa",
+  "scheduler": {
+    "end_lr": 1e-06,
+    "horizon_updates": 102375,
+    "name": "linear_warmup_cosine",
+    "start_lr": 3.2e-05,
+    "total_updates": 81900,
+    "warmup_updates": 10920
+  },
+  "weight_decay": 0.04,
+  "weight_decay_schedule": {
+    "end": 0.4,
+    "exclude_bias_and_1d": true,
+    "horizon_updates": 102375,
+    "indexing": "one_based_optimizer_update",
+    "name": "cosine",
+    "start": 0.04
+  },
+  "world_size": 2
+}

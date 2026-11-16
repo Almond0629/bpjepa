@@ -1,0 +1,257 @@
+# COMEDIAN stage2 recipe as run for the paper (resolved config, machine paths replaced by paths.*).
+# Set paths.* on the Hydra command line; see REPRODUCE.md.
+callbacks:
+  model_checkpoint:
+    _target_: eztorch.callbacks.ModelCheckpoint
+    dirpath: ${paths.run}
+    filename: '{epoch}'
+    save_last: false
+    save_top_k: -1
+    mode: min
+    every_n_epochs: 50
+  learning_rate_monitor:
+    _target_: eztorch.callbacks.LearningRateMonitor
+    logging_interval: null
+    log_momentum: false
+  progress_bar:
+    _target_: eztorch.callbacks.TQDMProgressBar
+    refresh_rate: 50
+    process_position: 0
+datamodule:
+  _target_: eztorch.datamodules.SoccerNetDataModule
+  _recursive_: false
+  datadir: ${paths.frames}/train.json
+  train:
+    dataset:
+      datadir: ${paths.frames}/train.json
+      video_path_prefix: ${paths.frames}/train
+      label_args: null
+      feature_args:
+        dir: ${paths.baidu_features}
+        filename: pca_512_std_baidu_soccer_embeddings
+        fps: 1
+      task: action
+    decoder_args:
+      fps: 2
+      num_threads_io: 4
+      num_threads_decode: 4
+      num_decode: 1
+      time_difference_prob: 0.0
+      mask_ratio: 0.0
+      mask_tube: 2
+      transform: null
+    clip_sampler:
+      _target_: eztorch.datasets.clip_samplers.soccernet.RandomWindowSoccerNetClipSampler
+      windows_per_video: 76
+      window_duration: 64.0
+      shuffle: true
+    loader:
+      drop_last: true
+      num_workers: 4
+      pin_memory: true
+      shuffle: false
+      prefetch_factor: 1
+    global_batch_size: 32
+    transform: null
+  val: null
+  test: null
+  video_path_prefix: ${paths.frames}/train.json
+  decoder: frame
+  decoder_args:
+    fps: 2
+    num_threads_io: 4
+    num_threads_decode: 4
+    num_decode: 1
+    time_difference_prob: 0.0
+    transform: null
+    mask_ratio: 0.0
+    mask_tube: 2
+model:
+  train_transform:
+    _target_: eztorch.transforms.ApplyTransformsOnList
+    _recursive_: true
+    transforms:
+    - _target_: torchaug.batch_transforms.BatchVideoWrapper
+      video_format: CTHW
+      same_on_frames: true
+      inplace: true
+      transforms:
+      - _target_: torchaug.batch_transforms.BatchVideoResize
+        antialias: true
+        size:
+        - 224
+        - 224
+        video_format: TCHW
+      - _target_: eztorch.transforms.Div255Input
+        inplace: true
+      - _target_: torchaug.batch_transforms.BatchRandomColorJitter
+        brightness: 0.8
+        contrast: 0.8
+        hue: 0.2
+        p: 0.8
+        saturation: 0.4
+        inplace: true
+      - _target_: torchaug.batch_transforms.BatchRandomGrayscale
+        p: 0.2
+        inplace: true
+      - _target_: torchaug.batch_transforms.BatchRandomGaussianBlur
+        kernel_size: 23
+        sigma:
+        - 0.1
+        - 2.0
+        p: 0.5
+        inplace: true
+      - _target_: torchaug.batch_transforms.BatchRandomSolarize
+        threshold: 0.5
+        p: 0.2
+        inplace: true
+      - _target_: torchaug.batch_transforms.BatchRandomHorizontalFlip
+        p: 0.5
+        inplace: true
+      - _target_: torchaug.transforms.Normalize
+        mean:
+        - 0.45
+        - 0.45
+        - 0.45
+        std:
+        - 0.225
+        - 0.225
+        - 0.225
+        inplace: true
+  _target_: eztorch.models.siamese.sce_tokens.SCEDistillTokens
+  _recursive_: false
+  coeff: 0.5
+  keep_aligned_positive: true
+  mutual_pass: false
+  normalize_outputs: true
+  normalize_positive_coeff: false
+  num_global_crops: 1
+  num_local_crops: 0
+  num_prefix_tokens: 0
+  num_out_tokens: 64
+  optimizer:
+    _target_: eztorch.optimizers.optimizer_factory
+    _recursive_: false
+    exclude_wd_norm: true
+    exclude_wd_bias: true
+    name: adamw
+    params:
+      weight_decay: 0.05
+      betas:
+      - 0.9
+      - 0.999
+      eps: 1.0e-08
+      amsgrad: false
+    batch_size: 32
+    initial_lr: 0.004
+    layer_decay_lr: null
+    scaler: linear
+    scheduler:
+      _target_: eztorch.schedulers.scheduler_factory
+      _recursive_: false
+      name: linear_warmup_cosine_annealing_lr
+      params:
+        max_epochs: 100
+        warmup_epochs: 10
+        warmup_start_lr: 4.0e-05
+        eta_min: 4.0e-05
+      interval: step
+    keys_without_decay:
+    - pos_embed
+    - spatial_cls_token
+    - temporal_cls_token
+    - time_embed
+    - temporal_mask_token
+  positive_radius: 0
+  predictor: null
+  projector:
+    _target_: eztorch.models.heads.MLPHead
+    activation_inplace: false
+    activation_layer: gelu
+    affine: false
+    bias: true
+    dropout: 0.0
+    dropout_inplace: true
+    hidden_dims:
+    - 1024
+    - 1024
+    input_dim: 192
+    norm_layer: null
+    num_layers: 3
+    last_bias: true
+    last_norm: false
+    last_affine: false
+    output_dim: 512
+  queue:
+    size: 65536
+    feature_dim: 512
+  temp: 0.1
+  temp_m: 0.05
+  trunk:
+    _target_: eztorch.models.trunks.create_vitransformer_token_handler_model
+    _recursive_: false
+    return_cls_token: false
+    return_cls_and_other_tokens: false
+    flatten_tokens: true
+    average_tokens: false
+    separate_spatial_temporal: false
+    detach_temporal: false
+    transformer:
+      _target_: eztorch.models.trunks.create_vivit_tiny
+      num_frames: 128
+      img_size: 224
+      patch_size: 16
+      spatial_class_token: true
+      temporal_class_token: false
+      temporal_num_heads: 3
+      in_chans: 3
+      temporal_depth: 6
+      dropout_p: 0.1
+      dropout_rate: 0.0
+      attention_dropout_rate: 0.0
+      time_dropout_rate: 0.0
+      tube_size: 2
+      conv_type: Conv3d
+      use_learnable_pos_emb: true
+      use_learnable_time_emb: true
+      freeze_spatial: false
+      temporal_mask_token: true
+      temporal_mask_ratio: 0.25
+      temporal_mask_tube: 2
+      pretrain_pth: ${paths.stage1_checkpoint}
+      weights_from: spatial
+      copy_strategy: repeat
+      extend_strategy: temporal_avg
+  use_keys: true
+  use_all_keys: false
+seed:
+  _target_: lightning.fabric.utilities.seed.seed_everything
+  seed: 42
+  workers: true
+trainer:
+  _target_: lightning.pytorch.trainer.Trainer
+  accelerator: gpu
+  benchmark: true
+  devices: auto
+  max_epochs: 100
+  num_nodes: 1
+  precision: 16
+  strategy:
+    _target_: lightning.pytorch.strategies.DDPStrategy
+    find_unused_parameters: false
+    static_graph: false
+  sync_batchnorm: false
+  use_distributed_sampler: false
+  gradient_clip_val: 1
+ckpt_path: null
+dir:
+  data: ${paths.frames}/train.json
+  root: ${paths.run_root}
+  exp: pretrain_spatio_temporal
+  run: ${paths.run}
+paths:
+  baidu_features: ???
+  frames: ???
+  run: ???
+  run_root: ???
+  stage1_checkpoint: ???
