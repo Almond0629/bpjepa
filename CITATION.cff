@@ -1,9 +1,10 @@
-# The repository URL, DOI and proceedings metadata are added once they exist.
+# The DOI and proceedings metadata are added once they exist.
 cff-version: 1.2.0
 message: "If you use this code, please cite the paper."
 title: "Teaching V-JEPA When Events Happen: Label-Free Boundary Prediction for Action Spotting"
 type: software
 license: MIT
+repository-code: "https://github.com/Almond0629/bpjepa"
 authors:
   - family-names: "Chang"
     given-names: "Alan Shu-Luen"
